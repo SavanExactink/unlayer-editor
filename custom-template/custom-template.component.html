@@ -1,0 +1,216 @@
+<div class="main-content">
+    <div *ngFor="let alert of userService.alerts">
+        <alert [type]="alert.type" [dismissOnTimeout]="alert.timeout">{{ alert.msg }}</alert>
+    </div>
+    <div class="tab-steps multi-step">
+        <div class="row">
+            <div class="col-md-12">
+                <div class="modal-steps" [ngClass]="{'one':tabs_css === 1, 'two': tabs_css === 2, 'three':tabs_css === 3, '':tabs_css > 3}">
+                    <span *ngFor="let campaign_tab of campaignService.campaign_tabs" [ngClass]="{'d-none': !campaign_tab.is_tab}">
+                        <div class="step" [ngClass]="campaign_tab.active ? 'current' : 'completed'"
+                            *ngIf="campaign_tab.is_tab">
+                            <div class="dot"></div>
+                            <label class="label">
+                                <span *ngIf="campaign_tab.active">{{campaign_tab.tilte}}</span>
+                            <a *ngIf="!campaign_tab.active" [routerLink]="[campaign_tab.url]">{{campaign_tab.tilte}}</a>
+                            </label>
+                        </div>
+                    </span>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div>
+        <div class="row">
+            <div class="col-md-12">
+                <div class="row">
+                    <div class="col-sm-12 text-right">
+                        <a class="btn-text mr-sm-3" [routerLink]="['/user/campaigns/', param_id,'view']" ><i class="icons-remove_red_eye"></i> Back to Campaign Overview</a>
+                        <a [routerLink]="['/user/campaigns/']" class="btn-text mr-sm-3">Cancel</a>
+                        <a [routerLink]="['/user/campaigns/', param_id, 'setting']" class="btn-text mr-sm-3">Settings</a>
+                        <a [routerLink]="['/user/campaigns/', param_id, 'templates']" class="btn btn-primary btn-default mr-2">Change Template</a>
+                        <button (click)="previewTemplate(mode == 'edit' ? 'view' : 'edit')" class="btn btn-default  mr-2">{{ mode == 'edit' ? 'Preview' : 'Edit'}}</button>
+                        <button (click)="updateTemplateDetails('NO')" class="btn btn-primary mr-2" [ngClass]="{'btn-loading': (isSubmitting && isSaveNext === 'NO')}">
+                            <div class="loader"></div>
+                            Save
+                        </button>
+                        <button (click)="updateTemplateDetails('YES')" class="btn btn-primary mr-2" [ngClass]="{'btn-loading': (isSubmitting && isSaveNext === 'YES')}">
+                            <div class="loader"></div>
+                            Save & Next
+                        </button>
+                    </div>
+                </div>
+                <div class="card" >
+                    <div class="card-body">
+                        <button 
+                            (click)="saveAsTemplate(defaultTemplate)" 
+                            class="btn btn-primary btn-default mr-2" 
+                            [ngClass]="{'btn-loading': isTemplateSubmitting}"
+                        >
+                            <div class="loader"></div> 
+                            Save as Template 
+                        </button>
+                        <button 
+                            *ngIf="currentUser.user_type == 'ADMIN'" 
+                            (click)="saveDesign(masterTemplate)" 
+                            class="btn btn-primary btn-default mr-2"
+                        >
+                            <div class="loader"></div> 
+                            Save as Master Template
+                        </button>
+                        <div class="row">
+                            <div class="col-md-12 h-100">
+                                <email-editor 
+                                    [projectId]="projectId"
+                                    [options]="options" 
+                                    [tools]="tools" 
+                                    (loaded)="editorLoaded($event)"
+                                    #editor
+                                >
+                                </email-editor>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<ng-template #masterTemplate>
+    <div class="modal-header">
+        <h4 class="modal-title pull-left"> Save As Master Template </h4>
+        <button type="button" class="close pull-right" aria-label="Close" (click)="modalRef.hide()">
+            <span aria-hidden="true">&times;</span>
+        </button>
+    </div>
+    <div class="modal-body">
+        <form [formGroup]="modalForm" (ngSubmit)="submitForm()">
+            <div class="form-content row">
+                    <div class="col-md-6">
+                        <div class="form-field">
+                            <label class="text-left">Template Name <span class="required">*</span></label>
+                            <input formControlName="template_name" class="input-field" type="text" />
+                            <errors class="error-msz" [control]="modalForm.controls.template_name"></errors>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-field">
+                            <label for="title_text">Category</label>
+                            <ng-select [items]="tagsListArray" (keyup)="onChange($event)" class="tag-cloud-box" formControlName="categories" bindLabel="name" [multiple]="true" placeholder="Select or add tag" [addTag]="addTag" [multiple]="true">
+                            </ng-select>
+                            <errors class="error-msz" [control]="modalForm.controls.categories"></errors>
+                        </div>
+                    </div>
+                <div class="col-md-12">
+                    <button class="btn btn-primary mr-3" [disabled]="!modalForm.valid || isMaterTemplateSubmitting" [ngClass]="{'btn-loading': isMaterTemplateSubmitting}"> <div class="loader"></div>Submit</button>
+                    <button type="button" (click)="hideModal()" class="btn btn-default">Cancel</button>
+                </div>
+            </div>
+        </form>
+    </div>
+</ng-template>
+<ng-template #defaultTemplate>
+    <div class="modal-header">
+        <h4 class="modal-title pull-left"> Save As Template </h4>
+        <button type="button" class="close pull-right" aria-label="Close" (click)="modalRef.hide()">
+            <span aria-hidden="true">&times;</span>
+        </button>
+    </div>
+    <div class="modal-body">
+        <form [formGroup]="templateForm" (ngSubmit)="templateFormSubmit()">
+            <div class="form-content container-xsm">
+                <div class="col-md-12">
+                    <div class="form-field">
+                        <label class="text-left">Template Name <span class="required">*</span></label>
+                        <input formControlName="template_name" class="input-field" type="text" />
+                        <errors class="error-msz" [control]="templateForm.controls.template_name"></errors>
+                    </div>
+                </div>
+                <div class="col-md-12">
+                    <button class="btn btn-primary mr-3" [disabled]="!templateForm.valid || isTemplateSubmitting" [ngClass]="{'btn-loading': isTemplateSubmitting}"> <div class="loader"></div>Submit</button>
+                    <button type="button" (click)="hideModal()" class="btn btn-default">Cancel</button>
+                </div>
+            </div>
+        </form>
+    </div>
+</ng-template>
+
+<ng-template #imageTemplate>
+    <div class="modal-header">
+        <h4 class="modal-title pull-left"> Media Library </h4>
+        <button type="button" class="close pull-right" aria-label="Close" (click)="modalRef.hide()">
+            <span aria-hidden="true">&times;</span>
+        </button>
+    </div>
+    <div class="modal-body" id="mediaLibrary">
+        <div class="col-sm-12">
+            <div class="row">
+                <div class="col-sm-3 col-lg-3">
+                    <div class="form-group">
+                        <input type="text" class="regular-form" id="search" placeholder="Search by Name" [(ngModel)]="parameters.keyword" (keyup)="search($event)">
+
+                    </div>
+                </div>
+                <div class="col-sm-3 col-lg-3">
+                    <div class="form-group">
+                        <select class="regular-form" id="status" [(ngModel)]="parameters.filters.media_category_id" (change)="filterCategory()">
+                            <option value="">Please Select</option>
+                            <option *ngFor="let mediaCategory of mediaCategories" [ngValue]="mediaCategory.media_category_id">
+                                {{ mediaCategory.name }}
+                            </option>
+                        </select>
+                    </div>
+                </div>
+                <div class="col-sm-3 col-lg-3">
+                </div>
+                <div class="col-sm-3 col-lg-3">
+                    <input #_fileInput type="file" (change)="onFileChanged($event)" accept="image/*" hidden>
+                    <button class="btn btn-primary" (click)="_fileInput.click()" [ngClass]="{'btn-loading': isFileSubmitting}"><div class="loader"></div>Upload Image</button>
+                </div>
+            </div>
+            <div class="library-main">
+                <div class="col-lg-3 col-md-4 px-0  mb-3" *ngFor="let row of rows | paginate: { itemsPerPage: 20, currentPage: currentPage, totalItems: counts }; let i = index;">
+                    <div class="mx-2 media-card border p-1 h-100 cursor-pointer">
+                        <div class="card border-0">
+                            <img id="img{{i}}" src="{{row.image_url}}" class="media-images border-0" alt="">
+                            <div class="card-text">
+                                <div class="text-center image_title">{{row.original_name}}</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div *ngIf="rows?.length == 0" class="text-center mx-auto">
+                    <div class="row">
+                        <div class="col-12 text-center">
+                            <span class="no-table-data text-center my-3">No data to display</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="block-footer w-100" *ngIf="pages?.length > 1">
+                    <div class="row">
+                        <div class="col-sm-12 mt-2 d-flex justify-content-end">
+                            <pagination-controls previousLabel="Prev" (pageChange)="handlePageChange($event)"></pagination-controls>
+                            <!-- <ul class="pagination ml-auto">
+                                <li class="page-item align-baseline">
+                                    <a [class.isDisabled]="current_page === 1" class="page-link prev-nav-icon" aria-label="Previous" (click)="paginationAction('prev')">
+                                        <i class="icons-chevron-down"></i>
+                                    </a>
+                                </li>
+                                <li class="page-item mb-2 align-baseline" *ngFor="let page of pages">
+                                    <a [class.isSelected]="current_page === page+1" class="page-link" (click)="setPage(page+1)">{{page+1}}</a>
+                                </li>
+                                <li class="page-item align-baseline">
+                                    <a [class.isDisabled]="current_page === last_index" class="page-link next-nav-icon" aria-label="Next" (click)="paginationAction('next')">
+                                        <i class="icons-chevron-down"></i>
+                                    </a>
+                                </li>
+                            </ul> -->
+                        </div>
+                    </div>
+                </div>
+                <span class="home-loader full-loader" *ngIf="imgloading"></span>
+            </div>
+        </div>
+    </div>
+</ng-template>
